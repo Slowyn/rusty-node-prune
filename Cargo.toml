@@ -5,3 +5,4 @@ authors = ["Konstantin Yakushin <y231966mdk@gmail.com>"]
 
 [dependencies]
 walkdir = "2"
+pretty-bytes = "0.2.2"

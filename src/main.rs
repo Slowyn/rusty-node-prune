@@ -1,8 +1,12 @@
 extern crate walkdir;
+extern crate pretty_bytes;
 
 use walkdir::WalkDir;
+use pretty_bytes::converter::convert;
 use std::path::Path;
 use std::collections::BTreeMap;
+use std::fs::{remove_dir_all, remove_file};
+use std::fmt;
 
 // DefaultFiles pruned.
 //
@@ -100,9 +104,39 @@ fn to_map(s: &'static [&str]) -> MapForRemoval {
 }
 
 struct Stats {
-    size_removed: i64,
-    files_total: i64,
-    files_removed: i64,
+    size_removed: u64,
+    files_total: u64,
+    files_removed: u64,
+}
+
+impl fmt::Debug for Stats {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Stats {{ size_removed: {}, files_total: {}, files_removed: {} }}", convert(self.size_removed as f64), self.files_total, self.files_removed)
+    }
+}
+
+impl Stats {
+
+    fn new() -> Stats {
+        Stats {
+            size_removed: 0,
+            files_total: 0,
+            files_removed: 0,
+        }
+    }
+
+    fn dir(&mut self, dir_path: &Path) {
+        let dir_path = dir_path.to_str().unwrap_or_default();
+        let walker = WalkDir::new(dir_path).into_iter();
+        for entry in walker {
+            let entry = entry.unwrap();
+            let path = entry.path();
+            let metadata = path.metadata().unwrap();
+            self.size_removed += metadata.len();
+            self.files_removed += 1;
+            self.files_total += 1;
+        }
+    }
 }
 
 struct Pruner<'a> {
@@ -122,16 +156,31 @@ impl<'a> Pruner<'a> {
         }
     }
 
-    fn prune(&self) {
+    fn prune(&self) -> Stats {
+        let mut stats = Stats::new();
         for entry in WalkDir::new(self.dir) {
             let entry = entry.unwrap();
             let path = entry.path();
             let should_prune = self.should_prune(&path);
+            if !should_prune {
+                continue;
+            }
+            if path.is_dir() {
+                stats.dir(path);
+                if remove_dir_all(path).is_err() {
+                    panic!("Don't have permissions on folder deleting")
+                }
+
+                continue;
+            }
             let metadata = path.metadata().unwrap();
-            if should_prune {
-                println!("File should be pruned. Size: {:?}", metadata.len());
+            stats.files_removed += 1;
+            stats.size_removed += metadata.len();
+            if remove_file(path).is_err() {
+                panic!("Don't have permissions on file deleting")
             }
         }
+        stats
     }
 
     fn should_prune(&self, path: &Path) -> bool {
@@ -141,8 +190,6 @@ impl<'a> Pruner<'a> {
         }
         self.files.contains_key(&file_name) || self.exts.contains_key(&file_name)
     }
-
-
 }
 
 
@@ -153,5 +200,6 @@ fn main() {
         to_map(DEFAULT_FILES),
         to_map(DEFAULT_EXTENSIONS),
     );
-    p.prune();
+    let stats = p.prune();
+    println!("{:?}", stats);
 }
