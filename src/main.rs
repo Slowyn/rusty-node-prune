@@ -94,10 +94,12 @@ static DEFAULT_EXTENSIONS: &'static [&str] = &[
     ".swp",
 ];
 
+// TODO: Make concurrent iterating
+
 type MapForRemoval = BTreeMap<String, bool>;
 
 fn to_map(s: &'static [&str]) -> MapForRemoval {
-    s.iter().fold(BTreeMap::new(), |mut tree, n| {
+    s.iter().fold(BTreeMap::new(), |mut tree: MapForRemoval, n| {
         tree.insert(n.to_string(), true);
         tree
     })
