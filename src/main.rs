@@ -118,7 +118,6 @@ impl fmt::Debug for Stats {
 }
 
 impl Stats {
-
     fn new() -> Stats {
         Stats {
             size_removed: 0,
