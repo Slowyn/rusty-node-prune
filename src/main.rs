@@ -90,7 +90,9 @@ static DEFAULT_EXTENSIONS: &'static [&str] = &[
     ".swp",
 ];
 
-fn to_map(s: &'static [&str]) -> BTreeMap<String, bool> {
+type MapForRemoval = BTreeMap<String, bool>;
+
+fn to_map(s: &'static [&str]) -> MapForRemoval {
     s.iter().fold(BTreeMap::new(), |mut tree, n| {
         tree.insert(n.to_string(), true);
         tree
@@ -102,8 +104,6 @@ struct Stats {
     files_total: i64,
     files_removed: i64,
 }
-
-type MapForRemoval = BTreeMap<String, bool>;
 
 struct Pruner<'a> {
     dir: &'a str,
