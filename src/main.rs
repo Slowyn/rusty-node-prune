@@ -168,17 +168,18 @@ impl<'a> Pruner<'a> {
             }
             if path.is_dir() {
                 stats.dir(path);
-                if remove_dir_all(path).is_err() {
-                    panic!("Don't have permissions on folder deleting")
+                match remove_dir_all(path) {
+                    Ok(_) => (),
+                    Err(e) => panic!(e)
                 }
-
                 continue;
             }
             let metadata = path.metadata().unwrap();
             stats.files_removed += 1;
             stats.size_removed += metadata.len();
-            if remove_file(path).is_err() {
-                panic!("Don't have permissions on file deleting")
+            match remove_file(path) {
+                Ok(_) => (),
+                Err(e) => panic!(e)
             }
         }
         stats
